@@ -99,6 +99,9 @@ importers:
 
   apps/bot:
     dependencies:
+      '@waliabet/database':
+        specifier: '*'
+        version: link:../../packages/database
       '@waliabet/shared':
         specifier: '*'
         version: link:../../packages/shared
@@ -108,6 +111,9 @@ importers:
       dotenv:
         specifier: ^16.4.7
         version: 16.6.1
+      pg:
+        specifier: ^8.13.1
+        version: 8.22.0
       telegraf:
         specifier: ^4.16.3
         version: 4.16.3
@@ -115,6 +121,9 @@ importers:
       '@types/node':
         specifier: ^22.10.0
         version: 22.20.0
+      '@types/pg':
+        specifier: ^8.11.10
+        version: 8.20.0
       tsup:
         specifier: ^8.3.5
         version: 8.5.1(jiti@1.21.7)(postcss@8.5.16)(tsx@4.23.0)(typescript@5.9.3)
