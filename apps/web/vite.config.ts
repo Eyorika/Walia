@@ -6,5 +6,13 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
+    proxy: {
+      // Proxy /auth requests to the bot's Express auth server
+      '/auth': {
+        target: 'http://localhost:4001',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
 });

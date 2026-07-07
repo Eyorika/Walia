@@ -8,7 +8,8 @@ const __dirname = dirname(__filename);
 dotenvConfig({ path: resolve(__dirname, '..', '..', '..', '.env') });
 
 import { Telegraf, Markup } from 'telegraf';
-import { query, queryOne, transaction } from './db.js';
+import { query, queryOne } from './db.js';
+import { startAuthServer } from './server.js';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) {
@@ -45,106 +46,35 @@ bot.start((ctx) => {
   );
 });
 
-// ─── Login Command ────────────────────────────────────────────
+// ─── Login / Link via Telegram Widget ───────────────────────
+const WEB_LOGIN_URL = process.env.APP_URL || 'http://localhost:3000';
+
 bot.command('login', (ctx) => {
+  const name = ctx.from.first_name;
   ctx.reply(
-    `🔐 Account Link Setup:\n\n` +
-    `Copy your Telegram Link Code from the WaliaBet app (Profile › Security) and enter it here:\n\n` +
-    `Format: \`/link [code]\`\n\n` +
-    `_Codes expire after 24 hours._`,
-    { parse_mode: 'Markdown' }
+    `👋 Hi ${name}!\n\n` +
+    `To link your WaliaBet account, use the Telegram Login on our website — it only takes one tap:\n\n` +
+    `🌐 [Open WaliaBet Login](${WEB_LOGIN_URL}/login)\n\n` +
+    `_Tap the link, click "Login with Telegram", and you're done. Your wallet will be ready instantly._`,
+    {
+      parse_mode: 'Markdown'
+    }
   );
 });
 
-// ─── Link Code Handler ────────────────────────────────────────
-bot.command('link', async (ctx): Promise<void> => {
-  const code = ctx.payload?.trim().toUpperCase();
-  const telegramId = String(ctx.from.id);
-
-  if (!code) {
-    ctx.reply('⚠️ Please provide a linking code.\n\nExample: `/link A8D3J2`', {
-      parse_mode: 'Markdown',
-    });
-    return;
-  }
-
-  try {
-    // Check if this Telegram account is already linked
-    const existingUser = await queryOne<{ id: string; username: string }>(
-      `SELECT id, username FROM users WHERE telegram_id = $1`,
-      [telegramId]
-    );
-
-    if (existingUser) {
-      ctx.reply(
-        `✅ Your Telegram is already linked to account *@${existingUser.username}*.\n` +
-        `Use /balance to check your wallet.`,
-        { parse_mode: 'Markdown' }
-      );
-      return;
+bot.command('link', (ctx) => {
+  ctx.reply(
+    `🔗 Account linking is now done through our website — no codes needed!\n\n` +
+    `Just tap the link below and log in with your Telegram account:\n\n` +
+    `🌐 [Link via Telegram Login](${WEB_LOGIN_URL}/login)`,
+    {
+      parse_mode: 'Markdown'
     }
-
-    // Look up the link code
-    const linkCode = await queryOne<{
-      id: string;
-      user_id: string;
-      expires_at: string;
-      used: boolean;
-    }>(
-      `SELECT id, user_id, expires_at, used FROM telegram_link_codes WHERE code = $1`,
-      [code]
-    );
-
-    if (!linkCode) {
-      ctx.reply('❌ Invalid link code. Please generate a new one from the WaliaBet app.');
-      return;
-    }
-
-    if (linkCode.used) {
-      ctx.reply('❌ This link code has already been used. Please generate a new one.');
-      return;
-    }
-
-    if (new Date(linkCode.expires_at) < new Date()) {
-      ctx.reply('❌ This link code has expired. Please generate a new one from the WaliaBet app.');
-      return;
-    }
-
-    // Perform the link in a transaction
-    await transaction(async (client) => {
-      // Link Telegram ID to user
-      await client.query(
-        `UPDATE users SET telegram_id = $1, updated_at = NOW() WHERE id = $2`,
-        [telegramId, linkCode.user_id]
-      );
-      // Mark code as used
-      await client.query(
-        `UPDATE telegram_link_codes SET used = true WHERE id = $1`,
-        [linkCode.id]
-      );
-    });
-
-    // Fetch the user details to confirm
-    const user = await queryOne<{ username: string; first_name: string }>(
-      `SELECT username, first_name FROM users WHERE id = $1`,
-      [linkCode.user_id]
-    );
-
-    ctx.reply(
-      `🎉 Success! Your Telegram is now linked to WaliaBet account *@${user?.username}*.\n\n` +
-      `You can now use:\n` +
-      `/balance - Check wallet balance\n` +
-      `/today - View today's fixtures`,
-      { parse_mode: 'Markdown' }
-    );
-  } catch (err) {
-    console.error('❌ /link error:', err);
-    ctx.reply('⚠️ Something went wrong. Please try again later.');
-  }
+  );
 });
 
-
 // ─── Balance Check ────────────────────────────────────────────
+
 async function sendBalance(ctx: any) {
   const telegramId = String(ctx.from.id);
 
@@ -335,7 +265,9 @@ bot.hears('🎟️ Place Bet', (ctx) => {
   );
 });
 
-// ─── Launch Bot ───────────────────────────────────────────────
+// ─── Start Auth Server + Bot ─────────────────────────────────
+startAuthServer();
+
 bot.launch()
   .then(() => console.log('🚀 WaliaBet Telegram Bot listening for updates...'))
   .catch((err) => console.error('🛑 Failed to start bot:', err));
