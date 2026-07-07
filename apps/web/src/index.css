@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#0D1117] text-white;
+  }
+}
+
+/* Glassmorphism custom components */
+.glass-panel {
+  background: rgba(22, 27, 34, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(48, 54, 61, 0.6);
+}
+
+.glass-card {
+  background: rgba(33, 38, 45, 0.4);
+  border: 1px solid rgba(48, 54, 61, 0.4);
+}
+
+.gold-gradient {
+  background: linear-gradient(135deg, #FFB800 0%, #D49200 100%);
+}
+
+.green-gradient {
+  background: linear-gradient(135deg, #00C851 0%, #007E33 100%);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0D1117;
+}
+::-webkit-scrollbar-thumb {
+  background: #30363D;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8B949E;
+}

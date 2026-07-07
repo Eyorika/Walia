@@ -1,0 +1,24 @@
+{
+  "name": "@waliabet/database",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "db:migrate": "node dist/migrate.js",
+    "db:seed": "node dist/seed.js",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.47.0",
+    "pg": "^8.13.1",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.10",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}

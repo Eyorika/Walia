@@ -1,0 +1,60 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "WaliaBet REST API",
+    "description": "Enterprise Sports Betting Platform REST API"
+  },
+  "basePath": "/api",
+  "schemes": ["http", "https"],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "summary": "Register a new customer account",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": { "type": "string" },
+                "username": { "type": "string" },
+                "firstName": { "type": "string" },
+                "lastName": { "type": "string" },
+                "password": { "type": "string" },
+                "agreeToTerms": { "type": "boolean" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": { "description": "Successfully registered" }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Log into user account",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": { "type": "string" },
+                "password": { "type": "string" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Login success" }
+        }
+      }
+    }
+  }
+}
