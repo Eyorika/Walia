@@ -5,7 +5,7 @@ import MatchesManagement from './pages/MatchesManagement.js';
 import OddsManagement from './pages/OddsManagement.js';
 import TransactionsManagement from './pages/TransactionsManagement.js';
 import SystemLogs from './pages/SystemLogs.js';
-import { LayoutDashboard, Users, Trophy, Percent, Wallet, FileText, Settings, ShieldAlert, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Trophy, Percent, Wallet, ShieldAlert, LogOut } from 'lucide-react';
 
 export default function App() {
   const navigate = useNavigate();

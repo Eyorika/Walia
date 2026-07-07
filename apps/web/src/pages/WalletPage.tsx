@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Wallet, Smartphone, Landmark, Building2, Send, Check } from 'lucide-react';
+import { Smartphone, Landmark, Building2, Send, Check } from 'lucide-react';
 
 export default function WalletPage() {
   const [tab, setTab] = useState<'deposit' | 'withdraw'>('deposit');

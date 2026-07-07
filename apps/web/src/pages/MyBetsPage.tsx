@@ -1,4 +1,4 @@
-import { FileText, Printer, CheckCircle } from 'lucide-react';
+import { Printer } from 'lucide-react';
 
 const MOCK_BETS = [
   { id: 'BET-90812', type: 'Accumulator', stake: 200, potentialWin: 1240, status: 'won', date: '2026-07-06 14:20', odds: 6.20 },

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, UserCheck, ShieldAlert, Edit } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 const MOCK_USERS = [
   { id: '1', username: 'tariku_b', email: 'tariku@domain.com', phone: '0911223344', role: 'customer', status: 'active', kyc: 'approved' },

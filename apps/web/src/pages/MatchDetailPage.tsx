@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { useBetSlipStore } from '../store/index.js';
-import { Award, ShieldAlert, LineChart } from 'lucide-react';
+import { LineChart } from 'lucide-react';
 
 export default function MatchDetailPage() {
   const { id } = useParams();

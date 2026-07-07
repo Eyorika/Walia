@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trophy, Calendar, Plus, RefreshCw } from 'lucide-react';
+import { Trophy, Plus } from 'lucide-react';
 
 const MOCK_MATCHES = [
   { id: '1', home: 'Saint George SC', away: 'Ethiopian Coffee SC', league: 'Ethiopian Premier League', time: '2026-07-07 18:00', status: 'scheduled', score: 'vs' },

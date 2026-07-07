@@ -1,4 +1,4 @@
-import { Copy, Users, Award, Share2 } from 'lucide-react';
+import { Users, Award, Share2 } from 'lucide-react';
 import { useState } from 'react';
 
 export default function ReferralPage() {

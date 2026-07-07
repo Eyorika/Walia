@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Wallet, Check, X, ShieldAlert } from 'lucide-react';
+import { Wallet, Check, X } from 'lucide-react';
 
 const MOCK_TRANSACTIONS = [
   { id: 'TXN-901', type: 'deposit', user: 'tariku_b', amount: 500, provider: 'telebirr', status: 'pending', date: '2026-07-07 14:10' },

@@ -1,4 +1,4 @@
-import { ShieldAlert, Terminal, AlertTriangle } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 
 const MOCK_LOGS = [
   { id: '1', level: 'info', service: 'waliabet-api', message: '🚀 Express server running on port 4000', time: '2026-07-07 16:24:30' },

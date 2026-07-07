@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, Shield, Key, Bell, CreditCard, Check } from 'lucide-react';
+import { User, Shield, Check } from 'lucide-react';
 
 export default function ProfilePage() {
   const [kycStatus, setKycStatus] = useState('not_submitted');

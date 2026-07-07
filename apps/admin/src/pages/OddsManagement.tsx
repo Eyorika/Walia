@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Percent, Lock, Unlock, Edit, Save } from 'lucide-react';
+import { Percent, Edit, Save } from 'lucide-react';
 
 const MOCK_ODDS = [
   { id: '1', match: 'Saint George SC vs Ethiopian Coffee SC', market: 'Match Winner (1X2)', outcome: 'Saint George SC', odds: 2.10 },

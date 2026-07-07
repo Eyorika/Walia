@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Award, Compass, Play, Shield, MessageSquare, Zap, BookOpen } from 'lucide-react';
+import { Compass, Shield, Zap } from 'lucide-react';
 
 export default function LandingPage() {
   return (

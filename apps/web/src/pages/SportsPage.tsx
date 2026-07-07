@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useBetSlipStore } from '../store/index.js';
-import { Flame, Play, Clock, Sparkles } from 'lucide-react';
+import { Flame, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const MOCK_MATCHES = [

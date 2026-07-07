@@ -5,20 +5,21 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
-    "db:migrate": "node dist/migrate.js",
+    "build": "tsup src/index.ts src/migrate.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts src/migrate.ts --format cjs,esm --dts --watch",
+    "db:migrate": "tsx src/migrate.ts",
     "db:seed": "node dist/seed.js",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.0",
-    "pg": "^8.13.1",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "pg": "^8.13.1"
   },
   "devDependencies": {
     "@types/pg": "^8.11.10",
     "tsup": "^8.3.5",
+    "tsx": "^4.23.0",
     "typescript": "^5.7.2"
   }
 }
