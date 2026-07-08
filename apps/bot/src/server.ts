@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import { query, queryOne } from './db.js';
 
 const app = express();
-const PORT = process.env.AUTH_SERVER_PORT ? parseInt(process.env.AUTH_SERVER_PORT) : 4001;
+const PORT = parseInt(process.env.PORT || process.env.AUTH_SERVER_PORT || '4001', 10);
 
 // ─── CORS ─────────────────────────────────────────────────────
 const ALLOWED_ORIGINS = [
