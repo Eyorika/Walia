@@ -21,7 +21,8 @@ interface TelegramUser {
 }
 
 const BOT_USERNAME = (import.meta as any).env?.VITE_TELEGRAM_BOT_USERNAME || 'WaliaBetBot';
-const AUTH_API = '/auth/telegram'; // proxied to localhost:4001 via vite
+const API_BASE = (import.meta as any).env?.VITE_API_URL || '';
+const AUTH_API = `${API_BASE}/auth/telegram`;
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
