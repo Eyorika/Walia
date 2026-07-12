@@ -20,7 +20,7 @@ interface TelegramUser {
   hash: string;
 }
 
-const BOT_USERNAME = (import.meta as any).env?.VITE_TELEGRAM_BOT_USERNAME || 'WaliaBetBot';
+const BOT_USERNAME = (import.meta as any).env?.VITE_TELEGRAM_BOT_USERNAME || 'WaliaBetbot';
 const AUTH_API = (import.meta as any).env?.VITE_AUTH_API_URL || '/auth/telegram';
 
 export default function LoginPage() {
@@ -76,10 +76,10 @@ export default function LoginPage() {
     if (!container || container.querySelector('script')) return;
 
     const script = document.createElement('script');
-    script.src = 'https://telegram.org/js/telegram-widget.js?22';
+    script.src = 'https://telegram.org/js/telegram-widget.js?24';
     script.setAttribute('data-telegram-login', BOT_USERNAME);
     script.setAttribute('data-size', 'large');
-    script.setAttribute('data-radius', '12');
+    script.setAttribute('data-userpic', 'false');
     script.setAttribute('data-onauth', 'onTelegramAuth(user)');
     script.setAttribute('data-request-access', 'write');
     script.async = true;
