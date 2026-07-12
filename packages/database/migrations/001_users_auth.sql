@@ -110,7 +110,7 @@ CREATE TABLE IF NOT EXISTS login_logs (
 CREATE INDEX idx_login_logs_user_id ON login_logs(user_id);
 CREATE INDEX idx_login_logs_created_at ON login_logs(created_at);
 
--- ─── KYC Documents ───────────────────────────────────────────
+-- ─── KYC Documents ───────────────────────────────────────
 CREATE TABLE IF NOT EXISTS kyc_documents (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
