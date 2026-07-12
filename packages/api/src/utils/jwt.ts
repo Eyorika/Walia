@@ -13,10 +13,13 @@ export interface TokenPair {
   accessToken: string;
   refreshToken: string;
   expiresIn: number;
+  sessionId: string;
 }
 
-export function generateTokenPair(user: Pick<User, 'id' | 'email' | 'role'>): TokenPair {
-  const sessionId = uuidv4();
+export function generateTokenPair(
+  user: Pick<User, 'id' | 'email' | 'role'>,
+  sessionId: string = uuidv4()
+): TokenPair {
   const expiresIn = parseInt(process.env.JWT_EXPIRES_IN?.replace('m', '') ?? '15') * 60;
 
   const payload: TokenPayload = {
@@ -36,7 +39,7 @@ export function generateTokenPair(user: Pick<User, 'id' | 'email' | 'role'>): To
     { expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN ?? '7d') as jwt.SignOptions['expiresIn'] }
   );
 
-  return { accessToken, refreshToken, expiresIn };
+  return { accessToken, refreshToken, expiresIn, sessionId };
 }
 
 export function verifyAccessToken(token: string): TokenPayload {

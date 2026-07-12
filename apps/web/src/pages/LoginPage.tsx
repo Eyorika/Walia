@@ -21,8 +21,7 @@ interface TelegramUser {
 }
 
 const BOT_USERNAME = (import.meta as any).env?.VITE_TELEGRAM_BOT_USERNAME || 'WaliaBetBot';
-const API_BASE = (import.meta as any).env?.VITE_API_URL || '';
-const AUTH_API = `${API_BASE}/auth/telegram`;
+const AUTH_API = (import.meta as any).env?.VITE_AUTH_API_URL || '/auth/telegram';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');

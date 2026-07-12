@@ -8,8 +8,9 @@ const __dirname = dirname(__filename);
 dotenvConfig({ path: resolve(__dirname, '..', '..', '..', '.env') });
 
 import { Telegraf, Markup } from 'telegraf';
-import { query, queryOne } from './db.js';
+import { query, queryOne, transaction } from './db.js';
 import { startAuthServer } from './server.js';
+import axios from 'axios';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) {
@@ -62,15 +63,95 @@ bot.command('login', (ctx) => {
   );
 });
 
-bot.command('link', (ctx) => {
-  ctx.reply(
-    `🔗 Account linking is now done through our website — no codes needed!\n\n` +
-    `Just tap the link below and log in with your Telegram account:\n\n` +
-    `🌐 [Link via Telegram Login](${WEB_LOGIN_URL}/login)`,
-    {
-      parse_mode: 'Markdown'
+bot.command('link', async (ctx) => {
+  const messageText = ctx.message?.text?.trim() || '';
+  const parts = messageText.split(/\s+/);
+  
+  if (parts.length < 2) {
+    return ctx.reply(
+      `🔗 *How to link your WaliaBet account*:\n\n` +
+      `1. Log in to the WaliaBet website.\n` +
+      `2. Go to your Profile settings.\n` +
+      `3. Copy your 6-digit Telegram Link Code.\n` +
+      `4. Reply to this bot with: \`/link <your_code>\` (e.g., \`/link A8D3J2\`)\n\n` +
+      `Alternatively, you can link directly via the website:\n` +
+      `🌐 [Link via Telegram Login](${WEB_LOGIN_URL}/login)`,
+      { parse_mode: 'Markdown' }
+    );
+  }
+
+  const codeInput = parts[1].trim().toUpperCase();
+  const telegramId = String(ctx.from.id);
+  
+  try {
+    const linkCode = await queryOne<{ id: string; user_id: string; expires_at: Date; used: boolean }>(
+      `SELECT id, user_id, expires_at, used FROM telegram_link_codes WHERE code = $1`,
+      [codeInput]
+    );
+
+    if (!linkCode) {
+      return ctx.reply(`❌ Invalid link code. Please check the code and try again.`);
     }
-  );
+
+    if (linkCode.used) {
+      return ctx.reply(`❌ This link code has already been used. Please generate a new one on the website.`);
+    }
+
+    if (new Date(linkCode.expires_at) < new Date()) {
+      return ctx.reply(`❌ This link code has expired. Please generate a new one on the website.`);
+    }
+
+    const existingTgUser = await queryOne<{ id: string; username: string }>(
+      `SELECT id, username FROM users WHERE telegram_id = $1`,
+      [telegramId]
+    );
+
+    if (existingTgUser) {
+      return ctx.reply(
+        `⚠️ Your Telegram account is already linked to WaliaBet user *@${existingTgUser.username}*.\n\n` +
+        `Use /balance to check your wallet balance.`,
+        { parse_mode: 'Markdown' }
+      );
+    }
+
+    const targetUser = await queryOne<{ id: string; username: string; telegram_id: string }>(
+      `SELECT id, username, telegram_id FROM users WHERE id = $1`,
+      [linkCode.user_id]
+    );
+
+    if (!targetUser) {
+      return ctx.reply(`❌ Target user not found.`);
+    }
+
+    if (targetUser.telegram_id) {
+      return ctx.reply(
+        `⚠️ The target WaliaBet account is already linked to another Telegram ID.`,
+        { parse_mode: 'Markdown' }
+      );
+    }
+
+    await transaction(async (client) => {
+      await client.query(
+        `UPDATE users SET telegram_id = $1, updated_at = NOW() WHERE id = $2`,
+        [telegramId, linkCode.user_id]
+      );
+
+      await client.query(
+        `UPDATE telegram_link_codes SET used = true WHERE id = $1`,
+        [linkCode.id]
+      );
+    });
+
+    return ctx.reply(
+      `🎉 *Success!* Your Telegram account has been successfully linked to WaliaBet account *@${targetUser.username}*.\n\n` +
+      `You can now use /balance to check your wallet balance and view upcoming fixtures!`,
+      { parse_mode: 'Markdown' }
+    );
+
+  } catch (err) {
+    console.error('❌ /link error:', err);
+    return ctx.reply(`⚠️ An error occurred while linking your account. Please try again later.`);
+  }
 });
 
 // ─── Balance Check ────────────────────────────────────────────
@@ -193,27 +274,8 @@ async function sendToday(ctx: any) {
       ]);
     });
 
-    // Store match data in a quick cache via action callbacks
-    // We register dynamic action handlers for each match
-    matchIds.forEach((matchId) => {
-      const matchRows = matchMap.get(matchId)!;
-      const first = matchRows[0];
-      const callbackId = `odds_${matchId.slice(0, 8)}`;
-
-      // Re-register only if not already registered (Telegraf handles this gracefully)
-      bot.action(callbackId, async (actionCtx) => {
-        await actionCtx.answerCbQuery();
-        const oddsLines = matchRows
-          .map((r) => `• ${r.odd_name === '1' ? `${first.home_team} Win` : r.odd_name === '2' ? `${first.away_team} Win` : 'Draw'}: *${parseFloat(r.odd_value).toFixed(2)}*`)
-          .join('\n');
-        actionCtx.reply(
-          `📊 *${first.home_team}* vs *${first.away_team}*\n` +
-          `🏆 ${first.league}\n\n` +
-          `Match Odds:\n${oddsLines}`,
-          { parse_mode: 'Markdown' }
-        );
-      });
-    });
+    // Dynamic actions registration removed to prevent memory leaks and handle restarts.
+    // Captured by global bot.action handler below.
 
     ctx.reply(text, {
       parse_mode: 'Markdown',
@@ -265,12 +327,84 @@ bot.hears('🎟️ Place Bet', (ctx) => {
   );
 });
 
+// ─── Odds Button Callback ─────────────────────────────────────
+bot.action(/^odds_(.+)$/, async (ctx) => {
+  const matchIdPrefix = ctx.match[1];
+
+  try {
+    const rows = await query<{
+      match_id: string;
+      home_team: string;
+      away_team: string;
+      league: string;
+      kickoff_time: Date;
+      odd_name: string;
+      odd_value: string;
+    }>(`
+      SELECT
+        m.id AS match_id,
+        ht.name AS home_team,
+        at.name AS away_team,
+        l.name AS league,
+        m.kickoff_time,
+        o.name AS odd_name,
+        o.value AS odd_value
+      FROM matches m
+      JOIN leagues l ON l.id = m.league_id
+      JOIN teams ht ON ht.id = m.home_team_id
+      JOIN teams at ON at.id = m.away_team_id
+      JOIN markets mk ON mk.match_id = m.id AND mk.status = 'open'
+      JOIN odds o ON o.market_id = mk.id AND o.is_active = true
+      WHERE CAST(m.id AS TEXT) LIKE $1 || '%'
+      ORDER BY o.name ASC
+    `, [matchIdPrefix]);
+
+    await ctx.answerCbQuery();
+
+    if (rows.length === 0) {
+      return ctx.reply('📭 Odds details not found or market is closed.');
+    }
+
+    const first = rows[0];
+    const oddsLines = rows
+      .map((r) => `• ${r.odd_name === '1' ? `${first.home_team} Win` : r.odd_name === '2' ? `${first.away_team} Win` : 'Draw'}: *${parseFloat(r.odd_value).toFixed(2)}*`)
+      .join('\n');
+
+    return ctx.reply(
+      `📊 *${first.home_team}* vs *${first.away_team}*\n` +
+      `🏆 ${first.league}\n\n` +
+      `Match Odds:\n${oddsLines}`,
+      { parse_mode: 'Markdown' }
+    );
+  } catch (err) {
+    console.error('❌ callback error:', err);
+    return ctx.reply('⚠️ Could not load match odds. Please try again.');
+  }
+});
+
 // ─── Start Auth Server + Bot ─────────────────────────────────
 startAuthServer();
 
-bot.launch()
-  .then(() => console.log('🚀 WaliaBet Telegram Bot listening for updates...'))
-  .catch((err) => console.error('🛑 Failed to start bot:', err));
+const checkTelegramConnection = async (botToken: string): Promise<boolean> => {
+  try {
+    const res = await axios.get(`https://api.telegram.org/bot${botToken}/getMe`, {
+      timeout: 3000,
+    });
+    return res.status === 200;
+  } catch (err) {
+    console.warn('⚠️ Telegram API is unreachable or token is invalid.');
+    return false;
+  }
+};
+
+const isOnline = await checkTelegramConnection(token);
+if (isOnline) {
+  bot.launch()
+    .then(() => console.log('🚀 WaliaBet Telegram Bot listening for updates...'))
+    .catch((err) => console.error('🛑 Failed to start bot:', err));
+} else {
+  console.log('📡 Bot running in AUTH-ONLY mode (Telegram connection offline).');
+}
 
 // Graceful shutdown
 process.once('SIGINT', () => bot.stop('SIGINT'));

@@ -99,6 +99,13 @@ app.post('/auth/telegram', async (req, res) => {
         finalUsername = `${username}_${telegramId.slice(-4)}`;
       }
 
+      // Ensure the 'customer' role exists (handles fresh/unseeded databases)
+      await query(`
+        INSERT INTO roles (name, display_name, description, is_system)
+        VALUES ('customer', 'Customer', 'End user account for placing bets', true)
+        ON CONFLICT (name) DO NOTHING
+      `);
+
       // Create a new user account via Telegram
       const newUser = await queryOne<{
         id: string;
@@ -122,8 +129,8 @@ app.post('/auth/telegram', async (req, res) => {
       `, [
         `tg_${telegramId}@waliabet.internal`, // placeholder email
         finalUsername,
-        firstName,
-        lastName,
+        firstName || `User${telegramId.slice(-4)}`,
+        lastName || '',
         telegramId,
       ]);
 
@@ -134,11 +141,12 @@ app.post('/auth/telegram', async (req, res) => {
 
       user = newUser;
 
-      // Create main and bonus wallets for the new user
+      // Create main and bonus wallets for the new user (ON CONFLICT for safety)
       await query(`
         INSERT INTO wallets (user_id, type, balance, currency) VALUES
         ($1, 'main', 0.00, 'ETB'),
         ($1, 'bonus', 0.00, 'ETB')
+        ON CONFLICT (user_id, type) DO NOTHING
       `, [user.id]);
     } else if (user.status === 'banned' || user.status === 'suspended') {
       res.status(403).json({ error: `Account is ${user.status}` });
@@ -152,20 +160,34 @@ app.post('/auth/telegram', async (req, res) => {
       return;
     }
 
+    const sessionId = crypto.randomUUID();
+
     const token = jwt.sign(
       {
-        sub: user.id,
+        userId: user.id,
+        email: user.email,
         role: user.role,
-        telegram_id: telegramId,
+        sessionId,
       },
       jwtSecret,
       { expiresIn: (process.env.JWT_EXPIRES_IN || '15m') as any }
     );
 
     const refreshToken = jwt.sign(
-      { sub: user.id },
+      {
+        userId: user.id,
+        sessionId,
+      },
       (process.env.JWT_REFRESH_SECRET || jwtSecret) as string,
       { expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as any }
+    );
+
+    // Insert session into DB to make token valid on API server
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    await query(
+      `INSERT INTO user_sessions (id, user_id, refresh_token, ip_address, user_agent, expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [sessionId, user.id, refreshToken, req.ip, req.headers['user-agent'] || null, expiresAt]
     );
 
     res.json({
@@ -182,9 +204,11 @@ app.post('/auth/telegram', async (req, res) => {
         photo_url: data.photo_url || null,
       },
     });
-  } catch (err) {
-    console.error('❌ /auth/telegram error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+  } catch (err: any) {
+    console.error('❌ /auth/telegram error:', err?.message || err);
+    if (err?.detail) console.error('  DB detail:', err.detail);
+    if (err?.code) console.error('  DB code:', err.code);
+    res.status(500).json({ error: 'Internal server error', detail: err?.message });
   }
 });
 

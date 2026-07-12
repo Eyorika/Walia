@@ -39,7 +39,7 @@ export async function register(req: Request, res: Response, next: NextFunction):
 
     await transaction(async (client) => {
       // Create user
-      const [newUser] = await client.query<User>(
+      const newUser = await client.query<User>(
         `INSERT INTO users (email, phone, username, first_name, last_name, password_hash, date_of_birth, referred_by)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING id, email, username, first_name, last_name, role, status, referral_code`,
@@ -75,7 +75,7 @@ export async function register(req: Request, res: Response, next: NextFunction):
       await client.query(
         `INSERT INTO user_sessions (id, user_id, refresh_token, ip_address, user_agent, expires_at)
          VALUES ($1, $2, $3, $4, $5, $6)`,
-        [uuidv4(), user.id, tokens.refreshToken, req.ip, req.headers['user-agent'], expiresAt]
+        [tokens.sessionId, user.id, tokens.refreshToken, req.ip, req.headers['user-agent'], expiresAt]
       );
 
       res.status(HTTP_STATUS.CREATED).json({
@@ -97,7 +97,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
   try {
     const { email, password, twoFactorCode } = req.body;
 
-    const user = await queryOne<User & { password_hash: string }>(
+    const user = await queryOne<User & { password_hash: string; two_factor_enabled?: boolean; two_factor_secret?: string }>(
       'SELECT * FROM users WHERE email = $1',
       [email.toLowerCase()]
     );
@@ -139,7 +139,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
     await query(
       `INSERT INTO user_sessions (id, user_id, refresh_token, ip_address, user_agent, expires_at)
        VALUES ($1, $2, $3, $4, $5, $6)`,
-      [uuidv4(), user.id, tokens.refreshToken, req.ip, req.headers['user-agent'], expiresAt]
+      [tokens.sessionId, user.id, tokens.refreshToken, req.ip, req.headers['user-agent'], expiresAt]
     );
 
     await query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id]);
@@ -183,7 +183,7 @@ export async function refreshToken(req: Request, res: Response, next: NextFuncti
     if (!user) throw new AppError('User not found', HTTP_STATUS.UNAUTHORIZED);
 
     // Rotate refresh token
-    const tokens = generateTokenPair(user);
+    const tokens = generateTokenPair(user, payload.sessionId);
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     await query(
